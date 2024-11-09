@@ -21,6 +21,20 @@
         .file-item {
             padding: 10px;
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-item .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .file-item .delete-btn:hover {
+            background-color: #cc0000;
         }
         #dropZone {
             border: 2px dashed #ccc;
@@ -70,6 +84,7 @@
             {% for file in files %}
             <div class="file-item">
                 <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">{{ file }}</a>
+                <button class="delete-btn" onclick="deleteFile('{{ file }}')">삭제</button>
             </div>
             {% endfor %}
         </div>
@@ -139,8 +154,26 @@
             fileList.innerHTML = files.map(file => `
                 <div class="file-item">
                     <a href="/static/uploads/${file}" target="_blank">${file}</a>
+                    <button class="delete-btn" onclick="deleteFile('${file}')">삭제</button>
                 </div>
             `).join('');
+        }
+
+        function deleteFile(filename) {
+            if (confirm('정말로 이 파일을 삭제하시겠습니까?')) {
+                fetch(`/delete/${filename}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateFileList(data.files);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
         }
     </script>
 </body>
