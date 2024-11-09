@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>파일 업로더</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .file-list {
+            margin: 20px 0;
+        }
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        #dropZone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 25px;
+            text-align: center;
+            margin: 20px 0;
+            background: #f9f9f9;
+        }
+        #dropZone.dragover {
+            background: #e1e1e1;
+            border-color: #999;
+        }
+        .progress {
+            margin-top: 10px;
+            display: none;
+            background: #f0f0f0;
+            border-radius: 4px;
+            height: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>파일 업로더</h1>
+    
+    <div id="dropZone">
+        파일을 여기에 드래그하거나 클릭하여 선택하세요
+        <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+            <input type="file" name="files[]" id="fileInput" multiple style="display: none;">
+        </form>
+    </div>
+    
+    <div class="progress">
+        <div class="progress-bar"></div>
+    </div>
+
+    <div class="file-list">
+        <h2>업로드된 파일 목록</h2>
+        <div id="fileList">
+            {% for file in files %}
+            <div class="file-item">
+                <a href="{{ url_for('static', filename='uploads/' + file) }}" target="_blank">{{ file }}</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadForm = document.getElementById('uploadForm');
+        const fileList = document.getElementById('fileList');
+        const progress = document.querySelector('.progress');
+        const progressBar = document.querySelector('.progress-bar');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('files[]', file);
+            }
+
+            progress.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            fetch('{{ url_for("upload_file") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                progressBar.style.width = '100%';
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                    updateFileList(data.all_files);
+                }, 500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                progress.style.display = 'none';
+            });
+        }
+
+        function updateFileList(files) {
+            fileList.innerHTML = files.map(file => `
+                <div class="file-item">
+                    <a href="/static/uploads/${file}" target="_blank">${file}</a>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
