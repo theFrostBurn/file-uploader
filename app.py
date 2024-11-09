@@ -12,26 +12,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx'}
 
 def allowed_file(filename):
-    return ('.' in filename and 
-            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS)
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
-    # 파일 목록을 최신순으로 정렬
-    files = os.listdir(app.config['UPLOAD_FOLDER'])
-    files.sort(key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)), reverse=True)
-    return render_template('index.html', files=files)
-
-@app.route('/delete/<filename>')
-def delete_file(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            files = os.listdir(app.config['UPLOAD_FOLDER'])
-            files.sort(key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)), reverse=True)
-            return jsonify({'success': True, 'files': files})
-    return redirect(url_for('index'))
+    uploaded_files = os.listdir(app.config['UPLOAD_FOLDER'])
+    return render_template('index.html', files=uploaded_files)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -51,11 +38,9 @@ def upload_file():
             uploaded_files.append(filename)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        files = os.listdir(app.config['UPLOAD_FOLDER'])
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)), reverse=True)
         return jsonify({
             'files': uploaded_files,
-            'all_files': files
+            'all_files': os.listdir(app.config['UPLOAD_FOLDER'])
         })
     
     return redirect(url_for('index'))
